@@ -1,0 +1,118 @@
+name: Deployment to itch.io
+
+on:
+  # workflow_dispatch will enable manual triggers
+  workflow_dispatch:
+  push:
+    tags: [ "*.*.*" ]
+  
+
+env:
+  CARGO_TERM_COLOR: always
+  PROJECT_NAME: boids
+
+jobs:
+  deploy-wasm-linux-windows:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get install libx11-dev libxi-dev libgl1-mesa-dev gcc-mingw-w64 libasound2-dev
+          # -L follows redirects
+          # -O specifies output name
+          curl -L -o butler.zip https://broth.itch.ovh/butler/linux-amd64/LATEST/archive/default
+          unzip butler.zip
+          # GNU unzip tends to not set the executable bit even though it's set in the .zip
+          chmod +x butler
+          # just a sanity check run (and also helpful in case you're sharing CI logs)
+          ./butler -V
+
+      - name: Build
+        run: cargo build -r
+
+      - name: Run tests
+        run: cargo test -r
+
+      - name: Package Linux
+        run: |
+          mkdir -p ${PROJECT_NAME}_linux
+          cp -r assets/ ${PROJECT_NAME}_linux/
+          cp target/release/${PROJECT_NAME} ${PROJECT_NAME}_linux/
+          zip -FS -r ${PROJECT_NAME}_linux.zip ${PROJECT_NAME}_linux/*
+          sha512sum ${PROJECT_NAME}_linux.zip
+
+      - name: Deploy Linux to itch.io
+        env:
+          BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
+        run: ./butler push ${PROJECT_NAME}_linux.zip jmmut/${PROJECT_NAME}:linux
+
+      - name: Compile and package WebAssembly
+        run: |
+          rustup target add wasm32-unknown-unknown
+          cargo build -r --target wasm32-unknown-unknown
+          # the folder export_html contains the html wrapper so that the wasm can be used
+          mkdir -p ${PROJECT_NAME}_html
+          cp -r export_html/* ${PROJECT_NAME}_html/
+          cp -r target/wasm32-unknown-unknown/release/*.wasm ${PROJECT_NAME}_html/
+          cp -r assets/ ${PROJECT_NAME}_html/
+          zip -FS -r wasm.zip ${PROJECT_NAME}_html/*
+          sha512sum wasm.zip
+
+      - name: Deploy WebAssembly to itch.io
+        env:
+          BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
+        run: ./butler push wasm.zip jmmut/${PROJECT_NAME}:html5
+
+      - name: Compile and package Windows
+        run: |
+          rustup target add x86_64-pc-windows-gnu
+          cargo build -r --target x86_64-pc-windows-gnu
+          mkdir -p ${PROJECT_NAME}_windows
+          cp -r assets/ ${PROJECT_NAME}_windows/
+          cp target/x86_64-pc-windows-gnu/release/${PROJECT_NAME}.exe ${PROJECT_NAME}_windows/
+          zip -FS -r ${PROJECT_NAME}_windows.zip ${PROJECT_NAME}_windows/*
+          sha512sum ${PROJECT_NAME}_windows.zip
+
+      - name: Deploy Windows to itch.io
+        env:
+          BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
+        run: ./butler push ${PROJECT_NAME}_windows.zip jmmut/${PROJECT_NAME}:windows
+
+  deploy-mac:
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install system dependencies
+        run: |
+          # -L follows redirects
+          # -O specifies output name
+          curl -L -o butler.zip https://broth.itch.ovh/butler/darwin-amd64/LATEST/archive/default
+          unzip butler.zip
+          # GNU unzip tends to not set the executable bit even though it's set in the .zip
+          chmod +x butler
+          # just a sanity check run (and also helpful in case you're sharing CI logs)
+          ./butler -V
+
+      - name: Build
+        run: cargo build -r
+
+      - name: Run tests
+        run: cargo test -r
+
+      - name: Package Mac
+        run: |
+          mkdir -p ${PROJECT_NAME}_mac
+          cp -r assets/ ${PROJECT_NAME}_mac/
+          cp target/release/${PROJECT_NAME} ${PROJECT_NAME}_mac/
+          zip -FS -r ${PROJECT_NAME}_mac.zip ${PROJECT_NAME}_mac/*
+          # sha512sum ${PROJECT_NAME}_mac.zip # error: sha512sum doesn't exist in mac. TODO: Find alternative.
+
+      - name: Deploy Mac to itch.io
+        env:
+          BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
+        run: ./butler push ${PROJECT_NAME}_mac.zip jmmut/${PROJECT_NAME}:mac
