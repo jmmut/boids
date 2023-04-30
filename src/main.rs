@@ -36,17 +36,21 @@ async fn main() {
             bot_birds.get_mut(i_current_bird).unwrap().advance_toroid(screen_width(), screen_height());
             let mut other_birds_direction = Vec2::default();
             let mut other_birds_count = 0;
+            accumulate_directions(bot_birds.get(i_current_bird).unwrap(), &player_bird, &mut other_birds_direction, &mut other_birds_count);
             for other_bird in &bot_birds {
-                if bot_birds.get(i_current_bird).unwrap().can_see(other_bird) {
-                    other_birds_count += 1;
-                    other_birds_direction += other_bird.get_direction();
-                }
-
+                accumulate_directions(bot_birds.get(i_current_bird).unwrap(), other_bird, &mut other_birds_direction, &mut other_birds_count);
             }
-            bot_birds.get_mut(i_current_bird).unwrap().modify_direction(other_birds_direction, PEER_PRESSURE_FACTOR);
+            bot_birds.get_mut(i_current_bird).unwrap().modify_direction(other_birds_direction/other_birds_count as f32, PEER_PRESSURE_FACTOR);
             draw_bird(bot_birds.get(i_current_bird).unwrap(), DARKGREEN);
         }
         next_frame().await
+    }
+}
+
+fn accumulate_directions(current_bird: &Bird, other_bird: &Bird, other_birds_direction: &mut Vec2, other_birds_count: &mut i32) {
+    if current_bird.can_see(other_bird) {
+        *other_birds_count += 1;
+        *other_birds_direction += other_bird.get_direction();
     }
 }
 

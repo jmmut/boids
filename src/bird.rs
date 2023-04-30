@@ -64,7 +64,7 @@ impl Bird {
         }
     }
     pub fn modify_direction(&mut self, acceleration: Vec2, weight: f32) {
-        let minimum_speed = 0.1;
+        let minimum_speed = 0.5;
         let new_dir = self.dir * (1.0 - weight) + acceleration * weight;
         let new_speed = new_dir.length();
         if new_speed > minimum_speed {
