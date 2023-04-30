@@ -14,14 +14,18 @@ pub struct BirdTriangle {
 
 impl Bird {
     pub fn new(pos: Vec2, dir: Vec2) -> Self {
-        Self { pos, dir, speed: dir.dot(dir).sqrt(), }
+        Self {
+            pos,
+            dir,
+            speed: dir.dot(dir).sqrt(),
+        }
     }
 
     pub fn get_triangle(&self) -> BirdTriangle {
         BirdTriangle {
             front: self.pos + self.dir,
-            left: self.pos - self.dir*0.5 + rotate_left(self.dir*0.5),
-            right: self.pos - self.dir*0.5 + rotate_right(self.dir*0.5),
+            left: self.pos - self.dir * 0.5 + rotate_left(self.dir * 0.5),
+            right: self.pos - self.dir * 0.5 + rotate_right(self.dir * 0.5),
         }
     }
 
@@ -57,14 +61,16 @@ fn rotate_right(direction: Vec2) -> Vec2 {
 
 // google rotation matrices to understand this
 fn rotate_angle(direction: Vec2, angle_in_radians: f32) -> Vec2 {
-    Vec2::new(angle_in_radians.cos() * direction.x - angle_in_radians.sin() * direction.y,
-              angle_in_radians.sin() * direction.x + angle_in_radians.cos() * direction.y)
+    Vec2::new(
+        angle_in_radians.cos() * direction.x - angle_in_radians.sin() * direction.y,
+        angle_in_radians.sin() * direction.x + angle_in_radians.cos() * direction.y,
+    )
 }
 
 #[cfg(test)]
 mod tests {
-    use std::f32::consts::PI;
     use super::*;
+    use std::f32::consts::PI;
 
     #[test]
     fn test_rotate_left() {
@@ -81,7 +87,7 @@ mod tests {
     }
 
     fn assert_float_eq(a: f32, b: f32) {
-        const EPSILON:f32 = 0.0001;
+        const EPSILON: f32 = 0.0001;
         if (a - b).abs() > EPSILON {
             panic!("floats were not approximately equal!\n  {}\n  {}", a, b);
         }
