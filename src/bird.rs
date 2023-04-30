@@ -2,6 +2,8 @@ use macroquad::prelude::Vec2;
 
 const SIGHT_DISTANCE: f32 = 25.0;
 const SIGHT_DISTANCE_SQUARED: f32 = SIGHT_DISTANCE * SIGHT_DISTANCE;
+const MINIMUM_SPEED: f32 = 1.5; // in pixels per frame
+const TARGET_SPEED: f32 = 3.0; // in pixels per frame
 
 #[derive(Debug)]
 pub struct Bird {
@@ -57,17 +59,15 @@ impl Bird {
     }
 
     pub fn modify_speed(&mut self, acceleration: f32) {
-        let minimum_speed = (acceleration * 3.0).abs();
-        if self.speed + acceleration > minimum_speed {
+        if self.speed + acceleration > MINIMUM_SPEED {
             self.speed += acceleration;
             self.update_dir_magnitude();
         }
     }
     pub fn modify_direction(&mut self, acceleration: Vec2, weight: f32) {
-        let minimum_speed = 0.5;
         let new_dir = self.dir * (1.0 - weight) + acceleration * weight;
         let new_speed = new_dir.length();
-        if new_speed > minimum_speed {
+        if new_speed > MINIMUM_SPEED {
             self.dir = new_dir;
             self.speed = new_speed;
         }
@@ -97,6 +97,8 @@ impl Bird {
         if self.pos.y >= height {
             self.pos.y -= height;
         }
+        self.speed += (TARGET_SPEED - self.speed)*0.01;
+        self.update_dir_magnitude();
     }
 }
 

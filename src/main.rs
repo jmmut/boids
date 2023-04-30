@@ -12,7 +12,7 @@ const DEFAULT_WINDOW_WIDTH: i32 = 256 * 4;
 const DEFAULT_WINDOW_HEIGHT: i32 = 256 * 3;
 const ANGULAR_SPEED: f32 = PI * 0.02; // in radians per frame
 const ACCELERATION: f32 = 0.5; // in pixels per frame squared
-const PEER_PRESSURE_FACTOR: f32 = 0.5; // in pixels per frame squared
+const PEER_PRESSURE_FACTOR: f32 = 0.3; // in pixels per frame squared
 
 #[macroquad::main(window_conf)]
 async fn main() {
