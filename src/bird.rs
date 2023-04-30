@@ -1,9 +1,9 @@
 use macroquad::prelude::Vec2;
 
-const SIGHT_DISTANCE: f32 = 25.0;
+pub const SIGHT_DISTANCE: f32 = 25.0;
 const SIGHT_DISTANCE_SQUARED: f32 = SIGHT_DISTANCE * SIGHT_DISTANCE;
 const MINIMUM_SPEED: f32 = 1.5; // in pixels per frame
-const TARGET_SPEED: f32 = 3.0; // in pixels per frame
+pub const TARGET_SPEED: f32 = 3.0; // in pixels per frame
 
 #[derive(Debug)]
 pub struct Bird {
@@ -29,9 +29,9 @@ impl Bird {
 
     pub fn get_triangle(&self) -> BirdTriangle {
         BirdTriangle {
-            front: self.pos + self.dir,
-            left: self.pos - self.dir * 0.5 + rotate_left(self.dir * 0.5),
-            right: self.pos - self.dir * 0.5 + rotate_right(self.dir * 0.5),
+            front: self.pos + self.dir * 2.0,
+            left: self.pos - self.dir + rotate_left(self.dir),
+            right: self.pos - self.dir + rotate_right(self.dir),
         }
     }
 
@@ -48,9 +48,12 @@ impl Bird {
     }
 
     pub fn can_see(&self, other: &Bird) -> bool {
+        self.squared_distance_to(other) < SIGHT_DISTANCE_SQUARED
+    }
+
+    pub fn squared_distance_to(&self, other: &Bird) -> f32 {
         let diff = self.pos - other.pos;
-        let diff_distance_squared = diff.dot(diff);
-        diff_distance_squared < SIGHT_DISTANCE_SQUARED
+        diff.dot(diff)
     }
 
     pub fn rotate(&mut self, angle_in_radians: f32) {
@@ -97,7 +100,7 @@ impl Bird {
         if self.pos.y >= height {
             self.pos.y -= height;
         }
-        self.speed += (TARGET_SPEED - self.speed)*0.01;
+        self.speed += (TARGET_SPEED - self.speed) * 0.01;
         self.update_dir_magnitude();
     }
 }
@@ -150,9 +153,11 @@ mod tests {
     #[test]
     fn test_rotate_bird() {
         let mut bird = Bird::new(Vec2::default(), Vec2::new(0.5, 0.1));
-        bird.rotate(PI * 0.5);
+        let front = bird.get_triangle().front;
+        let radians = PI * 0.5;
+        bird.rotate(radians);
         let rotated_front = bird.get_triangle().front;
-        let down_left = Vec2::new(-0.1, 0.5);
-        assert_vec2_eq(rotated_front, down_left);
+        let expected_rotated = rotate_angle(front, radians);
+        assert_vec2_eq(rotated_front, expected_rotated);
     }
 }

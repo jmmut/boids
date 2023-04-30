@@ -1,8 +1,8 @@
-use crate::bird::Bird;
+use crate::bird::{Bird, TARGET_SPEED};
 use macroquad::prelude::Vec2;
 use std::f32::consts::PI;
 
-const BOT_DEFAULT_SPEED: f32 = 8.0;
+const BOT_DEFAULT_SPEED: f32 = TARGET_SPEED;
 
 pub fn spawn_birds(count: usize, min_pos: Vec2, max_pos: Vec2) -> Vec<Bird> {
     let mut seed = 3453457.0;
