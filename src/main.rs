@@ -10,6 +10,7 @@ const DEFAULT_WINDOW_TITLE: &'static str = "Boids";
 const DEFAULT_WINDOW_WIDTH: i32 = 256 * 4;
 const DEFAULT_WINDOW_HEIGHT: i32 = 256 * 3;
 const ANGULAR_SPEED: f32 = PI * 0.02; // in radians per frame
+const ACCELERATION: f32 = 0.5; // in pixels per frame squared
 
 #[macroquad::main(window_conf)]
 async fn main() {
@@ -43,6 +44,15 @@ fn control_bird(bird: &mut Bird) {
     }
     if is_key_down(KeyCode::Right) {
         bird.rotate(ANGULAR_SPEED);
+    }
+    if is_key_down(KeyCode::Up) {
+        bird.modify_speed(ACCELERATION);
+    }
+    if is_key_down(KeyCode::Down) {
+        bird.modify_speed(-ACCELERATION);
+    }
+    if is_key_pressed(KeyCode::F1) {
+        println!("bird: {:?}", bird);
     }
     bird.advance_toroid(screen_width(), screen_height());
 }

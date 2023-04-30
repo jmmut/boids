@@ -1,5 +1,6 @@
 use macroquad::prelude::Vec2;
 
+#[derive(Debug)]
 pub struct Bird {
     pos: Vec2,
     dir: Vec2,
@@ -29,9 +30,21 @@ impl Bird {
         }
     }
 
+    pub fn get_speed(&self) -> f32 {
+        self.speed
+    }
+
     pub fn rotate(&mut self, angle_in_radians: f32) {
         let new_unnormalized_dir = rotate_angle(self.dir, angle_in_radians);
         self.dir = new_unnormalized_dir.normalize() * self.speed;
+    }
+
+    pub fn modify_speed(&mut self, acceleration: f32) {
+        let minimum_speed = (acceleration * 3.0).abs();
+        if self.speed + acceleration > minimum_speed {
+            self.speed += acceleration;
+            self.dir = self.dir.normalize() * self.speed;
+        }
     }
 
     pub fn advance_toroid(&mut self, width: f32, height: f32) {
