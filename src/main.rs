@@ -10,8 +10,9 @@ use std::f32::consts::PI;
 const DEFAULT_WINDOW_TITLE: &'static str = "Boids";
 const DEFAULT_WINDOW_WIDTH: i32 = 256 * 4;
 const DEFAULT_WINDOW_HEIGHT: i32 = 256 * 3;
-const ANGULAR_SPEED: f32 = PI * 0.02; // in radians per frame
 const ACCELERATION: f32 = 0.5; // in pixels per frame squared
+const ANGULAR_SPEED: f32 = PI * 0.02; // in radians per frame
+const BOT_COUNT: usize = 1000;
 
 #[macroquad::main(window_conf)]
 async fn main() {
@@ -56,7 +57,7 @@ fn window_conf() -> Conf {
 
 fn spawn_default_birds() -> Vec<Bird> {
     spawn_birds(
-        100,
+        BOT_COUNT,
         Vec2::new(0.0, 0.0),
         Vec2::new(screen_width(), screen_height()),
     )
