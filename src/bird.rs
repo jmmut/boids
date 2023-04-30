@@ -34,17 +34,30 @@ impl Bird {
         self.speed
     }
 
+    pub fn get_pos(&self) -> Vec2 {
+        self.pos
+    }
+
     pub fn rotate(&mut self, angle_in_radians: f32) {
-        let new_unnormalized_dir = rotate_angle(self.dir, angle_in_radians);
-        self.dir = new_unnormalized_dir.normalize() * self.speed;
+        self.dir = rotate_angle(self.dir, angle_in_radians);
+        self.update_dir_magnitude();
     }
 
     pub fn modify_speed(&mut self, acceleration: f32) {
         let minimum_speed = (acceleration * 3.0).abs();
         if self.speed + acceleration > minimum_speed {
             self.speed += acceleration;
-            self.dir = self.dir.normalize() * self.speed;
+            self.update_dir_magnitude();
         }
+    }
+
+    pub fn set_speed(&mut self, speed: f32) {
+        self.speed = speed;
+        self.update_dir_magnitude();
+    }
+
+    fn update_dir_magnitude(&mut self) {
+        self.dir = self.dir.normalize() * self.speed;
     }
 
     pub fn advance_toroid(&mut self, width: f32, height: f32) {
@@ -83,6 +96,7 @@ fn rotate_angle(direction: Vec2, angle_in_radians: f32) -> Vec2 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::assertions::assert_vec2_eq;
     use std::f32::consts::PI;
 
     #[test]
@@ -99,18 +113,6 @@ mod tests {
         assert_eq!(rotate_right(right_down), down_left);
     }
 
-    fn assert_float_eq(a: f32, b: f32) {
-        const EPSILON: f32 = 0.0001;
-        if (a - b).abs() > EPSILON {
-            panic!("floats were not approximately equal!\n  {}\n  {}", a, b);
-        }
-    }
-
-    fn assert_vec2_eq(a: Vec2, b: Vec2) {
-        assert_float_eq(a.x, b.x);
-        assert_float_eq(a.y, b.y);
-    }
-
     #[test]
     fn test_rotate_angle() {
         let right_down = Vec2::new(0.5, 0.1);
@@ -124,7 +126,6 @@ mod tests {
     #[test]
     fn test_rotate_bird() {
         let mut bird = Bird::new(Vec2::default(), Vec2::new(0.5, 0.1));
-        let front = bird.get_triangle().front;
         bird.rotate(PI * 0.5);
         let rotated_front = bird.get_triangle().front;
         let down_left = Vec2::new(-0.1, 0.5);

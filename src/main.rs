@@ -1,9 +1,10 @@
+mod assertions;
 mod bird;
+mod bots;
 
 use crate::bird::{Bird, BirdTriangle};
+use crate::bots::spawn_birds;
 use macroquad::prelude::*;
-use macroquad::ui::root_ui;
-use macroquad::ui::widgets::Label;
 use std::f32::consts::PI;
 
 const DEFAULT_WINDOW_TITLE: &'static str = "Boids";
@@ -14,17 +15,26 @@ const ACCELERATION: f32 = 0.5; // in pixels per frame squared
 
 #[macroquad::main(window_conf)]
 async fn main() {
-    let mut bird = Bird::new(
+    let mut player_bird = Bird::new(
         Vec2::new(screen_width() * 0.5, screen_height() * 0.5),
         Vec2::new(10.0, 0.0),
+    );
+    let mut bot_birds = spawn_birds(
+        100,
+        Vec2::new(0.0, 0.0),
+        Vec2::new(screen_width(), screen_height()),
     );
     loop {
         if is_key_pressed(KeyCode::Escape) {
             break;
         }
-        control_bird(&mut bird);
+        control_bird(&mut player_bird);
         clear_background(LIGHTGRAY);
-        draw_bird(&bird);
+        draw_bird(&player_bird);
+        for bird in &mut bot_birds {
+            bird.advance_toroid(screen_width(), screen_height());
+            draw_bird(&bird);
+        }
         next_frame().await
     }
 }
