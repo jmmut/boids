@@ -29,7 +29,12 @@ async fn main() {
         }
 
         control_player_bird(&mut player_bird);
-        control_bot_birds(&mut bot_birds, &player_bird, screen_width(), screen_height());
+        control_bot_birds(
+            &mut bot_birds,
+            &player_bird,
+            screen_width(),
+            screen_height(),
+        );
 
         clear_background(LIGHTGRAY);
         draw_bird(&player_bird, DARKPURPLE);
