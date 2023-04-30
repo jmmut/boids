@@ -12,6 +12,7 @@ const DEFAULT_WINDOW_WIDTH: i32 = 256 * 4;
 const DEFAULT_WINDOW_HEIGHT: i32 = 256 * 3;
 const ANGULAR_SPEED: f32 = PI * 0.02; // in radians per frame
 const ACCELERATION: f32 = 0.5; // in pixels per frame squared
+const PEER_PRESSURE_FACTOR: f32 = 0.5; // in pixels per frame squared
 
 #[macroquad::main(window_conf)]
 async fn main() {
@@ -31,9 +32,19 @@ async fn main() {
         control_bird(&mut player_bird);
         clear_background(LIGHTGRAY);
         draw_bird(&player_bird, DARKPURPLE);
-        for bird in &mut bot_birds {
-            bird.advance_toroid(screen_width(), screen_height());
-            draw_bird(&bird, DARKGREEN);
+        for i_current_bird in 0..bot_birds.len() {
+            bot_birds.get_mut(i_current_bird).unwrap().advance_toroid(screen_width(), screen_height());
+            let mut other_birds_direction = Vec2::default();
+            let mut other_birds_count = 0;
+            for other_bird in &bot_birds {
+                if bot_birds.get(i_current_bird).unwrap().can_see(other_bird) {
+                    other_birds_count += 1;
+                    other_birds_direction += other_bird.get_direction();
+                }
+
+            }
+            bot_birds.get_mut(i_current_bird).unwrap().modify_direction(other_birds_direction, PEER_PRESSURE_FACTOR);
+            draw_bird(bot_birds.get(i_current_bird).unwrap(), DARKGREEN);
         }
         next_frame().await
     }

@@ -1,5 +1,8 @@
 use macroquad::prelude::Vec2;
 
+const SIGHT_DISTANCE: f32 = 25.0;
+const SIGHT_DISTANCE_SQUARED: f32 = SIGHT_DISTANCE * SIGHT_DISTANCE;
+
 #[derive(Debug)]
 pub struct Bird {
     pos: Vec2,
@@ -38,6 +41,16 @@ impl Bird {
         self.pos
     }
 
+    pub fn get_direction(&self) -> Vec2 {
+        self.dir
+    }
+
+    pub fn can_see(&self, other: &Bird) -> bool {
+        let diff = self.pos - other.pos;
+        let diff_distance_squared = diff.dot(diff);
+        diff_distance_squared < SIGHT_DISTANCE_SQUARED
+    }
+
     pub fn rotate(&mut self, angle_in_radians: f32) {
         self.dir = rotate_angle(self.dir, angle_in_radians);
         self.update_dir_magnitude();
@@ -48,6 +61,15 @@ impl Bird {
         if self.speed + acceleration > minimum_speed {
             self.speed += acceleration;
             self.update_dir_magnitude();
+        }
+    }
+    pub fn modify_direction(&mut self, acceleration: Vec2, weight: f32) {
+        let minimum_speed = 0.1;
+        let new_dir = self.dir * (1.0 - weight) + acceleration * weight;
+        let new_speed = new_dir.length();
+        if new_speed > minimum_speed {
+            self.dir = new_dir;
+            self.speed = new_speed;
         }
     }
 
