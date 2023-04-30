@@ -30,10 +30,10 @@ async fn main() {
         }
         control_bird(&mut player_bird);
         clear_background(LIGHTGRAY);
-        draw_bird(&player_bird);
+        draw_bird(&player_bird, DARKPURPLE);
         for bird in &mut bot_birds {
             bird.advance_toroid(screen_width(), screen_height());
-            draw_bird(&bird);
+            draw_bird(&bird, DARKGREEN);
         }
         next_frame().await
     }
@@ -67,7 +67,7 @@ fn control_bird(bird: &mut Bird) {
     bird.advance_toroid(screen_width(), screen_height());
 }
 
-fn draw_bird(bird: &Bird) {
+fn draw_bird(bird: &Bird, color: Color) {
     let BirdTriangle { front, left, right } = bird.get_triangle();
-    draw_triangle(front, left, right, DARKGREEN);
+    draw_triangle(front, left, right, color);
 }
