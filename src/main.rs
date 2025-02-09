@@ -17,36 +17,40 @@ const BOT_COUNT: usize = 1000;
 
 #[macroquad::main(window_conf)]
 async fn main() {
-    let screen_center = Vec2::new(screen_width() * 0.5, screen_height() * 0.5);
-    let mut player_bird = Bird::new(screen_center, Vec2::new(TARGET_SPEED, 0.0));
+    let map_size = vec2(1000.0, 1000.0);
+    // let screen_center = Vec2::new(screen_width() * 0.5, screen_height() * 0.5);
+    let mut player_bird = Bird::new(vec2(0.0, 0.0), Vec2::new(TARGET_SPEED, 0.0));
     let fovy = 45.0;
-    let camera_pos = vec3(
-        screen_center.x,
-        screen_center.y,
-        screen_center.x / (fovy * 0.5 / 360.0 * 2.0 * PI).tan(),
+    // let radians = fovy * 0.5 / 360.0 * 2.0 * PI * 1.5; // why the 1.5???
+    let mut camera_pos = vec3(
+        0.0, 0.0, 2.0,
+        // - screen_center.x / radians.tan(),
     );
-    let mut bot_birds = spawn_default_birds();
+    let mut camera_dir = vec3(0.0, 1.0, 0.0);
+    let mut up = vec3(0.0, 0.0, 1.0);
+    let mut bot_birds = spawn_default_birds(map_size);
+    let mut paused = false;
     let mut previous_now = now();
     loop {
         if is_key_pressed(KeyCode::Escape) {
             break;
         }
         if is_key_pressed(KeyCode::R) {
-            bot_birds = spawn_default_birds();
+            bot_birds = spawn_default_birds(map_size);
+        }
+        if is_key_pressed(KeyCode::Space) {
+            paused = !paused;
+        }
+        control_camera(&mut camera_pos, &mut camera_dir, up);
+        if !paused {
+            control_player_bird(&mut player_bird);
+            control_bot_birds(&mut bot_birds, &player_bird, map_size.x, map_size.y);
         }
 
-        control_player_bird(&mut player_bird);
-        control_bot_birds(
-            &mut bot_birds,
-            &player_bird,
-            screen_width(),
-            screen_height(),
-        );
-
         clear_background(LIGHTGRAY);
-        set_3d_camera(fovy, camera_pos);
-        draw_grid(20, 1., BLACK, GRAY);
-        draw_cube_wires(vec3(0., 1., -6.), vec3(2., 2., 2.), DARKGREEN);
+        set_3d_camera(fovy, camera_pos, camera_dir, up);
+        draw_grid(map_size, 1., BLACK, GRAY);
+        draw_cube_wires(vec3(0., 0., 6.), vec3(2., 2., 2.), DARKGREEN);
 
         draw_bird(&player_bird, DARKPURPLE);
         for bird in &bot_birds {
@@ -59,23 +63,6 @@ async fn main() {
     }
 }
 
-fn set_3d_camera(fovy: f32, camera_pos: Vec3) {
-    set_camera(&Camera3D {
-        position: camera_pos,
-        up: vec3(0.0, 1.0, 0.0),
-        target: camera_pos + vec3(0.0, 0.0, -1.0),
-        fovy,
-        ..Default::default()
-    });
-}
-
-fn draw_fps(previous_now: &mut f64) {
-    let new_now = now();
-    let fps = 1.0 / (new_now - *previous_now);
-    draw_text(&format!("FPS: {}", fps), 30.0, 30.0, 16.0, BLACK);
-    *previous_now = new_now;
-}
-
 fn window_conf() -> Conf {
     Conf {
         window_title: DEFAULT_WINDOW_TITLE.to_owned(),
@@ -85,20 +72,42 @@ fn window_conf() -> Conf {
     }
 }
 
-fn spawn_default_birds() -> Vec<Bird> {
-    spawn_birds(
-        BOT_COUNT,
-        Vec2::new(0.0, 0.0),
-        Vec2::new(screen_width(), screen_height()),
-    )
+fn spawn_default_birds(map_size: Vec2) -> Vec<Bird> {
+    let half = map_size * 0.5;
+    spawn_birds(BOT_COUNT, -half, half)
+}
+
+fn control_camera(camera_pos: &mut Vec3, camera_dir: &mut Vec3, up: Vec3) {
+    let camera_rotation_speed = 0.03;
+    let camera_speed = if is_key_down(KeyCode::LeftShift) || is_key_down(KeyCode::RightShift) {
+        3.0
+    } else {
+        0.3
+    };
+    if is_key_down(KeyCode::A) {
+        let left = up.cross(*camera_dir);
+        *camera_dir += left * camera_rotation_speed;
+        *camera_dir = camera_dir.normalize();
+    }
+    if is_key_down(KeyCode::D) {
+        let left = up.cross(*camera_dir);
+        *camera_dir -= left * camera_rotation_speed;
+        *camera_dir = camera_dir.normalize();
+    }
+    if is_key_down(KeyCode::W) {
+        *camera_pos += *camera_dir * camera_speed;
+    }
+    if is_key_down(KeyCode::S) {
+        *camera_pos -= *camera_dir * camera_speed;
+    }
 }
 
 fn control_player_bird(bird: &mut Bird) {
     if is_key_down(KeyCode::Left) {
-        bird.rotate(-ANGULAR_SPEED);
+        bird.rotate(ANGULAR_SPEED);
     }
     if is_key_down(KeyCode::Right) {
-        bird.rotate(ANGULAR_SPEED);
+        bird.rotate(-ANGULAR_SPEED);
     }
     if is_key_down(KeyCode::Up) {
         bird.modify_speed(ACCELERATION);
@@ -117,9 +126,49 @@ fn draw_bird(bird: &Bird, color: Color) {
     // draw_triangle(front, left, right, color);
     // draw_sphere(vec3(front.x, front.y, 0.0), bird.get_speed(), None, color)
     draw_cube(
-        vec3(front.x, front.y, 0.0),
+        vec3(front.x, front.y, 100.0),
         Vec3::splat(bird.get_speed()),
         None,
         color,
     )
+}
+
+fn set_3d_camera(fovy: f32, camera_pos: Vec3, camera_dir: Vec3, up: Vec3) {
+    set_camera(&Camera3D {
+        position: camera_pos,
+        up,
+        target: camera_pos + camera_dir,
+        fovy,
+        ..Default::default()
+    });
+}
+
+fn draw_fps(previous_now: &mut f64) {
+    let new_now = now();
+    let fps = 1.0 / (new_now - *previous_now);
+    draw_text(&format!("FPS: {}", fps), 30.0, 30.0, 16.0, BLACK);
+    *previous_now = new_now;
+}
+pub fn draw_grid(slices: Vec2, spacing: f32, axes_color: Color, other_color: Color) {
+    let half_slices_x = (slices.x as i32) / 2;
+    let half_slices_y = (slices.y as i32) / 2;
+    for i in -half_slices_x..half_slices_x + 1 {
+        let color = if i == 0 { axes_color } else { other_color };
+
+        draw_line_3d(
+            vec3(i as f32 * spacing, -half_slices_x as f32 * spacing, 0.),
+            vec3(i as f32 * spacing, half_slices_x as f32 * spacing, 0.),
+            color,
+        );
+    }
+
+    for i in -half_slices_y..half_slices_y + 1 {
+        let color = if i == 0 { axes_color } else { other_color };
+
+        draw_line_3d(
+            vec3(-half_slices_x as f32 * spacing, i as f32 * spacing, 0.),
+            vec3(half_slices_y as f32 * spacing, i as f32 * spacing, 0.),
+            color,
+        );
+    }
 }
