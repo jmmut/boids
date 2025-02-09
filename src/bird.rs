@@ -1,3 +1,4 @@
+use macroquad::math::{Vec3, Vec3Swizzles};
 use macroquad::prelude::Vec2;
 
 pub const SIGHT_DISTANCE: f32 = 25.0;
@@ -7,8 +8,8 @@ pub const TARGET_SPEED: f32 = 3.0; // in pixels per frame
 
 #[derive(Debug)]
 pub struct Bird {
-    pos: Vec2,
-    dir: Vec2,
+    pos: Vec3,
+    dir: Vec3,
     speed: f32,
 }
 
@@ -19,7 +20,7 @@ pub struct BirdTriangle {
 }
 
 impl Bird {
-    pub fn new(pos: Vec2, dir: Vec2) -> Self {
+    pub fn new(pos: Vec3, dir: Vec3) -> Self {
         Self {
             pos,
             dir,
@@ -27,23 +28,23 @@ impl Bird {
         }
     }
 
-    pub fn get_triangle(&self) -> BirdTriangle {
-        BirdTriangle {
-            front: self.pos + self.dir * 2.0,
-            left: self.pos - self.dir + rotate_left(self.dir),
-            right: self.pos - self.dir + rotate_right(self.dir),
-        }
-    }
+    // pub fn get_triangle(&self) -> BirdTriangle {
+    //     BirdTriangle {
+    //         front: self.pos.xy() + self.dir * 2.0,
+    //         left: self.pos - self.dir + rotate_left(self.dir),
+    //         right: self.pos - self.dir + rotate_right(self.dir),
+    //     }
+    // }
 
     pub fn get_speed(&self) -> f32 {
         self.speed
     }
 
-    pub fn get_pos(&self) -> Vec2 {
+    pub fn get_pos(&self) -> Vec3 {
         self.pos
     }
 
-    pub fn get_direction(&self) -> Vec2 {
+    pub fn get_direction(&self) -> Vec3 {
         self.dir
     }
 
@@ -57,7 +58,9 @@ impl Bird {
     }
 
     pub fn rotate(&mut self, angle_in_radians: f32) {
-        self.dir = rotate_angle(self.dir, angle_in_radians);
+        let Vec2 { x, y } = rotate_angle(self.dir.xy(), angle_in_radians);
+        self.dir.x = x;
+        self.dir.y = y;
         self.update_dir_magnitude();
     }
 
@@ -67,7 +70,7 @@ impl Bird {
             self.update_dir_magnitude();
         }
     }
-    pub fn modify_direction(&mut self, acceleration: Vec2, weight: f32) {
+    pub fn modify_direction(&mut self, acceleration: Vec3, weight: f32) {
         let new_dir = self.dir * (1.0 - weight) + acceleration * weight;
         let new_speed = new_dir.length();
         if new_speed > MINIMUM_SPEED {

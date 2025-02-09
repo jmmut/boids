@@ -1,6 +1,7 @@
 use crate::bird::{Bird, SIGHT_DISTANCE, TARGET_SPEED};
 use macroquad::prelude::Vec2;
 use std::f32::consts::PI;
+use macroquad::math::Vec3;
 
 const BOT_DEFAULT_SPEED: f32 = TARGET_SPEED;
 const PEER_PRESSURE_FACTOR: f32 = 0.3; // in pixels per frame squared
@@ -15,11 +16,13 @@ pub fn spawn_birds(count: usize, min_pos: Vec2, max_pos: Vec2) -> Vec<Bird> {
     let mut rnd = || iterate_hash(&mut seed);
     for _ in 0..count {
         bots.push(Bird::new(
-            Vec2::new(
+            Vec3::new(
                 in_modulo_range(rnd(), min_pos.x, max_pos.x),
                 in_modulo_range(rnd(), min_pos.y, max_pos.y),
+                in_modulo_range(rnd(), 80.0, 120.0),
             ),
-            angle_to_coords(in_modulo_range(rnd(), 0.0, 2.0 * PI)),
+            angle_to_coords3(in_modulo_range(rnd(), 0.0, 2.0 * PI),
+                             in_modulo_range(rnd(), -1.0, 1.0)),
         ));
         bots.last_mut().unwrap().set_speed(BOT_DEFAULT_SPEED);
     }
@@ -38,6 +41,9 @@ fn in_modulo_range(value: f32, min: f32, max: f32) -> f32 {
 fn angle_to_coords(angle: f32) -> Vec2 {
     Vec2::new(angle.cos(), angle.sin())
 }
+fn angle_to_coords3(angle: f32, pitch: f32) -> Vec3 {
+    Vec3::new(angle.cos(), angle.sin(), pitch)
+}
 
 pub fn control_bot_birds(
     bot_birds: &mut Vec<Bird>,
@@ -51,7 +57,7 @@ pub fn control_bot_birds(
             .unwrap()
             .advance_toroid(map_width, map_height);
         let current_bird = bot_birds.get(i_current_bird).unwrap();
-        let mut other_birds_direction = Vec2::default();
+        let mut other_birds_direction = Vec3::default();
         let mut other_birds_count = 0;
         let mut position_accumulator = PositionAccumulator::new();
         let current_bird1 = bot_birds.get(i_current_bird).unwrap();
@@ -82,7 +88,7 @@ pub fn control_bot_birds(
         let separation = if closest_bird_distance_squared < PERSONAL_SPACE_SQUARED {
             -(closest_bird_pos - current_bird.get_pos()) * PERSONAL_SPACE_STRENGTH
         } else {
-            Vec2::default()
+            Vec3::default()
         };
         let cohesion =
             (position_accumulator.get_average() - current_bird.get_pos()) * COHESION_FACTOR;
@@ -95,22 +101,22 @@ pub fn control_bot_birds(
 }
 
 struct PositionAccumulator {
-    added_positions: Vec2,
+    added_positions: Vec3,
     position_count: i32,
 }
 
 impl PositionAccumulator {
     pub fn new() -> Self {
         Self {
-            added_positions: Vec2::default(),
+            added_positions: Vec3::default(),
             position_count: 0,
         }
     }
-    pub fn add_position(&mut self, other_pos: Vec2) {
+    pub fn add_position(&mut self, other_pos: Vec3) {
         self.added_positions += other_pos;
         self.position_count += 1;
     }
-    pub fn get_average(&self) -> Vec2 {
+    pub fn get_average(&self) -> Vec3 {
         self.added_positions / self.position_count as f32
     }
 }

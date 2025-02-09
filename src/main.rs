@@ -19,7 +19,8 @@ const BOT_COUNT: usize = 1000;
 async fn main() {
     let map_size = vec2(1000.0, 1000.0);
     // let screen_center = Vec2::new(screen_width() * 0.5, screen_height() * 0.5);
-    let mut player_bird = Bird::new(vec2(0.0, 0.0), Vec2::new(TARGET_SPEED, 0.0));
+    let mut player_bird = Bird::new(vec3(0.0, 0.0, 100.0),
+                                    vec3(TARGET_SPEED, 0.0, 0.0));
     let fovy = 45.0;
     // let radians = fovy * 0.5 / 360.0 * 2.0 * PI * 1.5; // why the 1.5???
     let mut camera_pos = vec3(
@@ -31,7 +32,7 @@ async fn main() {
     let mut bot_birds = spawn_default_birds(map_size * 0.25);
     let mut bot_birds_2 = spawn_default_birds_2(map_size * 0.25);
     bot_birds.append(&mut bot_birds_2);
-    let mut paused = false;
+    let mut paused = true;
     let mut previous_now = now();
     let mut last_draw = 0.0;
     let mut previous_fps = 0.0;
@@ -134,11 +135,11 @@ fn control_player_bird(bird: &mut Bird, map_size: Vec2) {
 }
 
 fn draw_bird(bird: &Bird, color: Color) {
-    let BirdTriangle { front, left, right } = bird.get_triangle();
+    // let BirdTriangle { front, left, right } = bird.get_triangle();
     // draw_triangle(front, left, right, color);
     // draw_sphere(vec3(front.x, front.y, 0.0), bird.get_speed(), None, color)
     draw_cube(
-        vec3(front.x, front.y, 100.0),
+        bird.get_pos(),
         Vec3::splat(bird.get_speed()),
         None,
         color,
