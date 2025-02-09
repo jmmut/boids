@@ -35,7 +35,6 @@ impl Bird {
         }
     }
 
-    #[cfg(test)]
     pub fn get_speed(&self) -> f32 {
         self.speed
     }
