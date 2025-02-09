@@ -27,10 +27,12 @@ async fn main() {
         // - screen_center.x / radians.tan(),
     );
     let mut camera_dir = vec3(0.0, 1.0, 0.0);
-    let mut up = vec3(0.0, 0.0, 1.0);
+    let up = vec3(0.0, 0.0, 1.0);
     let mut bot_birds = spawn_default_birds(map_size);
     let mut paused = false;
     let mut previous_now = now();
+    let mut last_draw = 0.0;
+    let mut previous_fps = 0.0;
     loop {
         if is_key_pressed(KeyCode::Escape) {
             break;
@@ -43,7 +45,7 @@ async fn main() {
         }
         control_camera(&mut camera_pos, &mut camera_dir, up);
         if !paused {
-            control_player_bird(&mut player_bird);
+            control_player_bird(&mut player_bird, map_size);
             control_bot_birds(&mut bot_birds, &player_bird, map_size.x, map_size.y);
         }
 
@@ -58,7 +60,7 @@ async fn main() {
         }
 
         set_default_camera();
-        draw_fps(&mut previous_now);
+        draw_fps(&mut previous_now, &mut last_draw, &mut previous_fps);
         next_frame().await
     }
 }
@@ -102,7 +104,7 @@ fn control_camera(camera_pos: &mut Vec3, camera_dir: &mut Vec3, up: Vec3) {
     }
 }
 
-fn control_player_bird(bird: &mut Bird) {
+fn control_player_bird(bird: &mut Bird, map_size: Vec2) {
     if is_key_down(KeyCode::Left) {
         bird.rotate(ANGULAR_SPEED);
     }
@@ -118,7 +120,7 @@ fn control_player_bird(bird: &mut Bird) {
     if is_key_pressed(KeyCode::F1) {
         println!("bird: {:?}", bird);
     }
-    bird.advance_toroid(screen_width(), screen_height());
+    bird.advance_toroid(map_size.x, map_size.y);
 }
 
 fn draw_bird(bird: &Bird, color: Color) {
@@ -143,11 +145,19 @@ fn set_3d_camera(fovy: f32, camera_pos: Vec3, camera_dir: Vec3, up: Vec3) {
     });
 }
 
-fn draw_fps(previous_now: &mut f64) {
+fn draw_fps(previous_now: &mut f64, last_draw: &mut f64, previous_fps: &mut f64) {
     let new_now = now();
-    let fps = 1.0 / (new_now - *previous_now);
-    draw_text(&format!("FPS: {}", fps), 30.0, 30.0, 16.0, BLACK);
+    let delay_refresh_seconds = 0.1;
+    let should_update = new_now - *last_draw > delay_refresh_seconds;
+    let fps = if should_update {
+        *last_draw = new_now;
+        1.0 / (new_now - *previous_now)
+    } else {
+        *previous_fps
+    };
+    draw_text(&format!("FPS: {:.2}", fps), 30.0, 30.0, 16.0, BLACK);
     *previous_now = new_now;
+    *previous_fps = fps;
 }
 pub fn draw_grid(slices: Vec2, spacing: f32, axes_color: Color, other_color: Color) {
     let half_slices_x = (slices.x as i32) / 2;
