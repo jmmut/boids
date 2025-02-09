@@ -28,7 +28,9 @@ async fn main() {
     );
     let mut camera_dir = vec3(0.0, 1.0, 0.0);
     let up = vec3(0.0, 0.0, 1.0);
-    let mut bot_birds = spawn_default_birds(map_size);
+    let mut bot_birds = spawn_default_birds(map_size * 0.25);
+    let mut bot_birds_2 = spawn_default_birds_2(map_size * 0.25);
+    bot_birds.append(&mut bot_birds_2);
     let mut paused = false;
     let mut previous_now = now();
     let mut last_draw = 0.0;
@@ -49,14 +51,18 @@ async fn main() {
             control_bot_birds(&mut bot_birds, &player_bird, map_size.x, map_size.y);
         }
 
+
         clear_background(LIGHTGRAY);
         set_3d_camera(fovy, camera_pos, camera_dir, up);
         draw_grid(map_size, 1., BLACK, GRAY);
         draw_cube_wires(vec3(0., 0., 6.), vec3(2., 2., 2.), DARKGREEN);
 
         draw_bird(&player_bird, DARKPURPLE);
-        for bird in &bot_birds {
+        for bird in &bot_birds[0..bot_birds.len()/2] {
             draw_bird(bird, DARKGREEN);
+        }
+        for bird in &bot_birds[bot_birds.len()/2..] {
+            draw_bird(bird, YELLOW);
         }
 
         set_default_camera();
@@ -75,8 +81,12 @@ fn window_conf() -> Conf {
 }
 
 fn spawn_default_birds(map_size: Vec2) -> Vec<Bird> {
-    let half = map_size * 0.5;
-    spawn_birds(BOT_COUNT, -half, half)
+    // let half = map_size * 0.5;
+    spawn_birds(BOT_COUNT, vec2(0.0, 0.0), map_size)
+}
+fn spawn_default_birds_2(map_size: Vec2) -> Vec<Bird> {
+    // let half = map_size * 0.5;
+    spawn_birds(BOT_COUNT, map_size, 2.0 * map_size)
 }
 
 fn control_camera(camera_pos: &mut Vec3, camera_dir: &mut Vec3, up: Vec3) {
