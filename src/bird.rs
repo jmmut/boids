@@ -72,9 +72,6 @@ impl Bird {
         }
     }
     pub fn modify_direction(&mut self, acceleration: Vec3, weight: f32) {
-        if acceleration.x.is_nan() || acceleration.y.is_nan() || acceleration.z.is_nan() {
-            print!("here");
-        }
         let mut new_dir = self.dir * (1.0 - weight) + acceleration * weight;
         let new_speed_squared = new_dir.length_squared();
 

@@ -30,13 +30,14 @@ async fn main() {
     let mut camera_pos = vec3(
         0.0,
         -map_size.y * 0.5,
-        max_pos.z * 5.0,
+        max_pos.z * 4.0,
         // - screen_center.x / radians.tan(),
     );
-    let mut camera_dir = vec3(0.0, 1.0, -1.5);
+    let mut camera_dir = vec3(0.002, 1.0, -2.1);
     let up = vec3(0.0, 0.0, 1.0);
     let mut bot_birds = respawn_default_bots(map_size, min_pos, max_pos);
     let mut paused = true;
+    let mut target = false;
 
     let mut last_mouse_position: Vec2 = mouse_position().into();
     let mut previous_now = now();
@@ -54,6 +55,9 @@ async fn main() {
         if is_key_pressed(KeyCode::R) {
             bot_birds = respawn_default_bots(map_size, min_pos, max_pos);
         }
+        if is_key_pressed(KeyCode::H) {
+            target = !target;
+        }
         if is_key_pressed(KeyCode::Space) {
             paused = !paused;
         }
@@ -70,8 +74,11 @@ async fn main() {
                 &player_bird,
                 min_pos,
                 max_pos,
-                Some(player_bird.get_pos()),
-                // None,
+                if target {
+                    Some(player_bird.get_pos())
+                } else {
+                    None
+                },
             );
         }
         clear_background(GRAY);

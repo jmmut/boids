@@ -115,9 +115,6 @@ pub fn control_bot_birds(
         } else {
             other_birds_direction / other_birds_count as f32
         };
-        if alignment.is_nan() {
-            println!("alignment");
-        }
         let separation = if closest_bird_distance_squared < PERSONAL_SPACE_SQUARED {
             -(closest_bird_pos - current_bird.get_pos()) * PERSONAL_SPACE_STRENGTH
         } else {
