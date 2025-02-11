@@ -17,9 +17,9 @@ const BOT_COUNT: usize = 1000;
 
 #[macroquad::main(window_conf)]
 async fn main() {
-    let mut grabbed = true;
+    let mut grabbed = false;
     set_cursor_grab(grabbed);
-    show_mouse(false);
+    show_mouse(!grabbed);
     let map_size = vec3(1000.0, 1000.0, 100.0);
     let min_pos = vec3(-map_size.x * 0.5, -map_size.y * 0.5, 40.0);
     let max_pos = min_pos + map_size;
@@ -65,15 +65,14 @@ async fn main() {
             control_player_bird(&mut player_bird, min_pos, max_pos);
             control_bot_birds(&mut bot_birds, &player_bird, min_pos, max_pos);
         }
-
-        clear_background(LIGHTGRAY);
+        clear_background(GRAY);
         set_3d_camera(fovy, camera_pos, camera_dir, up);
-        draw_grid(map_size, 1., BLACK, GRAY);
+        draw_grid(map_size, 1., BLACK, DARKGRAY, camera_pos.z);
         draw_cube_wires(vec3(0., 0., 6.), vec3(2., 2., 2.), DARKGREEN);
 
-        draw_bird(&player_bird, DARKPURPLE);
+        draw_bird(&player_bird, PURPLE);
         for bird in &bot_birds[0..bot_birds.len() / 2] {
-            draw_bird(bird, DARKGREEN);
+            draw_bird(bird, GREEN);
         }
         for bird in &bot_birds[bot_birds.len() / 2..] {
             draw_bird(bird, YELLOW);
@@ -207,9 +206,13 @@ fn draw_fps(previous_now: &mut f64, last_draw: &mut f64, previous_fps: &mut f64)
     *previous_now = new_now;
     *previous_fps = fps;
 }
-pub fn draw_grid(slices: Vec3, spacing: f32, axes_color: Color, other_color: Color) {
+pub fn draw_grid(slices: Vec3, spacing: f32, axes_color: Color, mut other_color: Color, distance: f32) {
     let half_slices_x = (slices.x as i32) / 2;
     let half_slices_y = (slices.y as i32) / 2;
+    let min = 20.0;
+    let max = 200.0;
+    let distance = (distance.abs().clamp(min, max) - min) / (max - min);
+    other_color.a *= 1.0 - distance;
     for i in -half_slices_x..half_slices_x + 1 {
         let color = if in_modulo_range_i(i, 0, 10) == 0 {
             axes_color
