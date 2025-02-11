@@ -211,7 +211,11 @@ pub fn draw_grid(slices: Vec3, spacing: f32, axes_color: Color, other_color: Col
     let half_slices_x = (slices.x as i32) / 2;
     let half_slices_y = (slices.y as i32) / 2;
     for i in -half_slices_x..half_slices_x + 1 {
-        let color = if i == 0 { axes_color } else { other_color };
+        let color = if in_modulo_range_i(i, 0, 10) == 0 {
+            axes_color
+        } else {
+            other_color
+        };
 
         draw_line_3d(
             vec3(i as f32 * spacing, -half_slices_x as f32 * spacing, 0.),
@@ -221,7 +225,11 @@ pub fn draw_grid(slices: Vec3, spacing: f32, axes_color: Color, other_color: Col
     }
 
     for i in -half_slices_y..half_slices_y + 1 {
-        let color = if i == 0 { axes_color } else { other_color };
+        let color = if in_modulo_range_i(i, 0, 10) == 0 {
+            axes_color
+        } else {
+            other_color
+        };
 
         draw_line_3d(
             vec3(-half_slices_x as f32 * spacing, i as f32 * spacing, 0.),
