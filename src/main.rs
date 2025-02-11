@@ -20,7 +20,7 @@ async fn main() {
     let mut grabbed = false;
     set_cursor_grab(grabbed);
     show_mouse(!grabbed);
-    let map_size = vec3(1000.0, 1000.0, 100.0);
+    let map_size = vec3(1000.0, 1000.0, 200.0);
     let min_pos = vec3(-map_size.x * 0.5, -map_size.y * 0.5, 40.0);
     let max_pos = min_pos + map_size;
     // let screen_center = Vec2::new(screen_width() * 0.5, screen_height() * 0.5);
@@ -28,10 +28,12 @@ async fn main() {
     let fovy = 45.0;
     // let radians = fovy * 0.5 / 360.0 * 2.0 * PI * 1.5; // why the 1.5???
     let mut camera_pos = vec3(
-        0.0, 0.0, 2.0,
+        0.0,
+        -map_size.y * 0.5,
+        max_pos.z * 5.0,
         // - screen_center.x / radians.tan(),
     );
-    let mut camera_dir = vec3(0.0, 1.0, 0.0);
+    let mut camera_dir = vec3(0.0, 1.0, -1.5);
     let up = vec3(0.0, 0.0, 1.0);
     let mut bot_birds = respawn_default_bots(map_size, min_pos, max_pos);
     let mut paused = true;
@@ -63,14 +65,21 @@ async fn main() {
         );
         if !paused {
             control_player_bird(&mut player_bird, min_pos, max_pos);
-            control_bot_birds(&mut bot_birds, &player_bird, min_pos, max_pos);
+            control_bot_birds(
+                &mut bot_birds,
+                &player_bird,
+                min_pos,
+                max_pos,
+                Some(player_bird.get_pos()),
+                // None,
+            );
         }
         clear_background(GRAY);
         set_3d_camera(fovy, camera_pos, camera_dir, up);
         draw_grid(map_size, 1., BLACK, DARKGRAY, camera_pos.z);
         draw_cube_wires(vec3(0., 0., 6.), vec3(2., 2., 2.), DARKGREEN);
 
-        draw_bird(&player_bird, PURPLE);
+        draw_bird(&player_bird, WHITE);
         for bird in &bot_birds[0..bot_birds.len() / 2] {
             draw_bird(bird, GREEN);
         }
@@ -179,7 +188,12 @@ fn draw_bird(bird: &Bird, color: Color) {
     // let BirdTriangle { front, left, right } = bird.get_triangle();
     // draw_triangle(front, left, right, color);
     // draw_sphere(vec3(front.x, front.y, 0.0), bird.get_speed(), None, color)
-    draw_cube(bird.get_pos(), Vec3::splat(bird.get_speed()), None, color)
+    draw_cube(
+        bird.get_pos(),
+        Vec3::splat(bird.get_speed() * 0.5 + 1.0),
+        None,
+        color,
+    )
 }
 
 fn set_3d_camera(fovy: f32, camera_pos: Vec3, camera_dir: Vec3, up: Vec3) {
@@ -206,7 +220,13 @@ fn draw_fps(previous_now: &mut f64, last_draw: &mut f64, previous_fps: &mut f64)
     *previous_now = new_now;
     *previous_fps = fps;
 }
-pub fn draw_grid(slices: Vec3, spacing: f32, axes_color: Color, mut other_color: Color, distance: f32) {
+pub fn draw_grid(
+    slices: Vec3,
+    spacing: f32,
+    axes_color: Color,
+    mut other_color: Color,
+    distance: f32,
+) {
     let half_slices_x = (slices.x as i32) / 2;
     let half_slices_y = (slices.y as i32) / 2;
     let min = 20.0;

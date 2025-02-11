@@ -4,12 +4,13 @@ use macroquad::prelude::Vec2;
 use std::f32::consts::PI;
 
 const BOT_DEFAULT_SPEED: f32 = TARGET_SPEED;
-const PEER_PRESSURE_FACTOR: f32 = 0.3; // in world units per frame squared
+const PEER_PRESSURE_FACTOR: f32 = 0.1; // in world units per frame squared
 const PERSONAL_SPACE: f32 = SIGHT_DISTANCE * 0.5; // in world units
 const PERSONAL_SPACE_SQUARED: f32 = PERSONAL_SPACE * PERSONAL_SPACE; // in world units
 const PERSONAL_SPACE_STRENGTH: f32 = 0.2; // [0, 1] coefficient
 const COHESION_FACTOR: f32 = 0.01;
 const MAP_LIMIT_CORRECTION: f32 = 1.0;
+const TARGET_ATTRACTION: f32 = 0.2;
 
 pub fn spawn_birds(count: usize, min_pos: Vec3, max_pos: Vec3) -> Vec<Bird> {
     let mut seed = 3453457.0;
@@ -71,6 +72,7 @@ pub fn control_bot_birds(
     player_bird: &Bird,
     min_pos: Vec3,
     max_pos: Vec3,
+    target: Option<Vec3>,
 ) {
     for i_current_bird in 0..bot_birds.len() {
         bot_birds
@@ -80,6 +82,7 @@ pub fn control_bot_birds(
         let current_bird = bot_birds.get(i_current_bird).unwrap();
 
         let height_limits = correct_map_limit(min_pos, max_pos, current_bird);
+        let target = correct_for_target(current_bird.get_pos(), target);
         let mut other_birds_direction = Vec3::default();
         let mut other_birds_count = 0;
         let mut position_accumulator = PositionAccumulator::new();
@@ -107,20 +110,39 @@ pub fn control_bot_birds(
                 }
             }
         }
-        let alignment = other_birds_direction / other_birds_count as f32;
+        let alignment = if other_birds_count == 0 {
+            Vec3::default()
+        } else {
+            other_birds_direction / other_birds_count as f32
+        };
+        if alignment.is_nan() {
+            println!("alignment");
+        }
         let separation = if closest_bird_distance_squared < PERSONAL_SPACE_SQUARED {
             -(closest_bird_pos - current_bird.get_pos()) * PERSONAL_SPACE_STRENGTH
         } else {
             Vec3::default()
         };
         let cohesion =
-            (position_accumulator.get_average() - current_bird.get_pos()) * COHESION_FACTOR;
+            position_accumulator.get_average_from(current_bird.get_pos()) * COHESION_FACTOR;
         // let cohesion = Vec3::default();
-        let direction_modifier = alignment + separation + cohesion + height_limits;
+        let direction_modifier = alignment + separation + cohesion + height_limits + target;
+        if direction_modifier.is_nan() {
+            // panic!("should not happen, put breakpoint here");
+        }
         bot_birds
             .get_mut(i_current_bird)
             .unwrap()
             .modify_direction(direction_modifier, PEER_PRESSURE_FACTOR);
+    }
+}
+
+fn correct_for_target(pos: Vec3, target: Option<Vec3>) -> Vec3 {
+    if let Some(target) = target {
+        let diff = target - pos;
+        diff.normalize() * TARGET_ATTRACTION
+    } else {
+        Vec3::default()
     }
 }
 
@@ -152,8 +174,12 @@ impl PositionAccumulator {
         self.added_positions += other_pos;
         self.position_count += 1;
     }
-    pub fn get_average(&self) -> Vec3 {
-        self.added_positions / self.position_count as f32
+    pub fn get_average_from(&self, reference: Vec3) -> Vec3 {
+        if self.position_count == 0 {
+            reference
+        } else {
+            self.added_positions / self.position_count as f32 - reference
+        }
     }
 }
 

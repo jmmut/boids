@@ -1,10 +1,11 @@
 use macroquad::math::{Vec3, Vec3Swizzles};
 use macroquad::prelude::Vec2;
 
-pub const SIGHT_DISTANCE: f32 = 40.0;
+pub const SIGHT_DISTANCE: f32 = 25.0;
 const SIGHT_DISTANCE_SQUARED: f32 = SIGHT_DISTANCE * SIGHT_DISTANCE;
-const MINIMUM_SPEED: f32 = 1.5; // in pixels per frame
-pub const TARGET_SPEED: f32 = 3.0; // in pixels per frame
+const MINIMUM_SPEED: f32 = 0.1; // in world units per frame
+const MINIMUM_SPEED_SQUARED: f32 = MINIMUM_SPEED * MINIMUM_SPEED; // in world units per frame
+pub const TARGET_SPEED: f32 = 2.0; // in world units per frame
 
 #[derive(Debug)]
 pub struct Bird {
@@ -71,12 +72,17 @@ impl Bird {
         }
     }
     pub fn modify_direction(&mut self, acceleration: Vec3, weight: f32) {
-        let new_dir = self.dir * (1.0 - weight) + acceleration * weight;
-        let new_speed = new_dir.length();
-        if new_speed > MINIMUM_SPEED {
-            self.dir = new_dir;
-            self.speed = new_speed;
+        if acceleration.x.is_nan() || acceleration.y.is_nan() || acceleration.z.is_nan() {
+            print!("here");
         }
+        let mut new_dir = self.dir * (1.0 - weight) + acceleration * weight;
+        let new_speed_squared = new_dir.length_squared();
+
+        if new_speed_squared < MINIMUM_SPEED_SQUARED {
+            new_dir += self.dir;
+        }
+        self.dir = new_dir;
+        self.speed = self.dir.length();
     }
 
     pub fn set_speed(&mut self, speed: f32) {
