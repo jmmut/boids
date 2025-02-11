@@ -1,14 +1,15 @@
 use crate::bird::{Bird, SIGHT_DISTANCE, TARGET_SPEED};
-use macroquad::math::Vec3;
+use macroquad::math::{vec3, Vec3};
 use macroquad::prelude::Vec2;
 use std::f32::consts::PI;
 
 const BOT_DEFAULT_SPEED: f32 = TARGET_SPEED;
-const PEER_PRESSURE_FACTOR: f32 = 0.3; // in pixels per frame squared
-const PERSONAL_SPACE: f32 = SIGHT_DISTANCE * 0.5; // in pixels
-const PERSONAL_SPACE_SQUARED: f32 = PERSONAL_SPACE * PERSONAL_SPACE; // in pixels
+const PEER_PRESSURE_FACTOR: f32 = 0.3; // in world units per frame squared
+const PERSONAL_SPACE: f32 = SIGHT_DISTANCE * 0.5; // in world units
+const PERSONAL_SPACE_SQUARED: f32 = PERSONAL_SPACE * PERSONAL_SPACE; // in world units
 const PERSONAL_SPACE_STRENGTH: f32 = 0.2; // [0, 1] coefficient
 const COHESION_FACTOR: f32 = 0.01;
+const MAP_LIMIT_CORRECTION: f32 = 1.0;
 
 pub fn spawn_birds(count: usize, min_pos: Vec3, max_pos: Vec3) -> Vec<Bird> {
     let mut seed = 3453457.0;
@@ -37,12 +38,22 @@ fn iterate_hash(h: &mut f64) -> f32 {
 }
 
 /// See tests for exact behaviour. assumes min < max
-fn in_modulo_range(value: f32, min: f32, max: f32) -> f32 {
+pub fn in_modulo_range(value: f32, min: f32, max: f32) -> f32 {
     assert!(min < max, "{} < {}", min, max);
     if value < min {
         let diff = min - value;
         let range = max - min;
         let base = min - (diff / range).ceil() * range;
+        return (value - base) % range + min;
+    }
+    (value - min) % (max - min) + min
+}
+pub fn in_modulo_range_i(value: i32, min: i32, max: i32) -> i32 {
+    assert!(min < max, "{} < {}", min, max);
+    if value < min {
+        let diff = min - value;
+        let range = max - min;
+        let base = min - diff / range * range;
         return (value - base) % range + min;
     }
     (value - min) % (max - min) + min
@@ -68,6 +79,7 @@ pub fn control_bot_birds(
             .advance_toroid(min_pos, max_pos);
         let current_bird = bot_birds.get(i_current_bird).unwrap();
 
+        let height_limits = correct_map_limit(min_pos, max_pos, current_bird);
         let mut other_birds_direction = Vec3::default();
         let mut other_birds_count = 0;
         let mut position_accumulator = PositionAccumulator::new();
@@ -103,12 +115,25 @@ pub fn control_bot_birds(
         };
         let cohesion =
             (position_accumulator.get_average() - current_bird.get_pos()) * COHESION_FACTOR;
-        let direction_modifier = alignment + separation + cohesion;
+        // let cohesion = Vec3::default();
+        let direction_modifier = alignment + separation + cohesion + height_limits;
         bot_birds
             .get_mut(i_current_bird)
             .unwrap()
             .modify_direction(direction_modifier, PEER_PRESSURE_FACTOR);
     }
+}
+
+fn correct_map_limit(min_pos: Vec3, max_pos: Vec3, current_bird: &Bird) -> Vec3 {
+    let height_limits =
+        if current_bird.get_pos().z < min_pos.z && current_bird.get_direction().z < 0.0 {
+            vec3(0.0, 0.0, MAP_LIMIT_CORRECTION)
+        } else if current_bird.get_pos().z > max_pos.z && current_bird.get_direction().z > 0.0 {
+            vec3(0.0, 0.0, -MAP_LIMIT_CORRECTION)
+        } else {
+            Vec3::default()
+        };
+    height_limits
 }
 
 struct PositionAccumulator {

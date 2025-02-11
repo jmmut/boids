@@ -1,7 +1,7 @@
 use macroquad::math::{Vec3, Vec3Swizzles};
 use macroquad::prelude::Vec2;
 
-pub const SIGHT_DISTANCE: f32 = 25.0;
+pub const SIGHT_DISTANCE: f32 = 40.0;
 const SIGHT_DISTANCE_SQUARED: f32 = SIGHT_DISTANCE * SIGHT_DISTANCE;
 const MINIMUM_SPEED: f32 = 1.5; // in pixels per frame
 pub const TARGET_SPEED: f32 = 3.0; // in pixels per frame

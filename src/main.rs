@@ -3,13 +3,13 @@ mod bird;
 mod bots;
 
 use crate::bird::{Bird, BirdTriangle, TARGET_SPEED};
-use crate::bots::{control_bot_birds, spawn_birds};
+use crate::bots::{control_bot_birds, in_modulo_range, in_modulo_range_i, spawn_birds};
 use macroquad::miniquad::date::now;
 use macroquad::prelude::*;
 use std::f32::consts::PI;
 
 const DEFAULT_WINDOW_TITLE: &'static str = "Boids";
-const DEFAULT_WINDOW_WIDTH: i32 = 256 * 4;
+const DEFAULT_WINDOW_WIDTH: i32 = 256 * 5;
 const DEFAULT_WINDOW_HEIGHT: i32 = 256 * 3;
 const ACCELERATION: f32 = 0.5; // in pixels per frame squared
 const ANGULAR_SPEED: f32 = PI * 0.02; // in radians per frame
@@ -17,10 +17,11 @@ const BOT_COUNT: usize = 1000;
 
 #[macroquad::main(window_conf)]
 async fn main() {
-    set_cursor_grab(true);
+    let mut grabbed = true;
+    set_cursor_grab(grabbed);
     show_mouse(false);
-    let map_size = vec3(1000.0, 1000.0, 40.0);
-    let min_pos = vec3(-map_size.x * 0.5, -map_size.y * 0.5, 80.0);
+    let map_size = vec3(1000.0, 1000.0, 100.0);
+    let min_pos = vec3(-map_size.x * 0.5, -map_size.y * 0.5, 40.0);
     let max_pos = min_pos + map_size;
     // let screen_center = Vec2::new(screen_width() * 0.5, screen_height() * 0.5);
     let mut player_bird = Bird::new(vec3(0.0, 0.0, 100.0), vec3(TARGET_SPEED, 0.0, 0.0));
@@ -42,6 +43,11 @@ async fn main() {
     loop {
         if is_key_pressed(KeyCode::Escape) {
             break;
+        }
+        if is_key_pressed(KeyCode::LeftAlt) || is_key_pressed(KeyCode::RightAlt) {
+            grabbed = !grabbed;
+            set_cursor_grab(grabbed);
+            show_mouse(!grabbed);
         }
         if is_key_pressed(KeyCode::R) {
             bot_birds = respawn_default_bots(map_size, min_pos, max_pos);
