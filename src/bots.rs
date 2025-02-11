@@ -48,15 +48,18 @@ fn angle_to_coords3(angle: f32, pitch: f32) -> Vec3 {
 pub fn control_bot_birds(
     bot_birds: &mut Vec<Bird>,
     player_bird: &Bird,
-    map_width: f32,
-    map_height: f32,
+    map_width_x: f32,
+    map_width_y: f32,
 ) {
     for i_current_bird in 0..bot_birds.len() {
         bot_birds
             .get_mut(i_current_bird)
             .unwrap()
-            .advance_toroid(map_width, map_height);
+            .advance_toroid(map_width_x, map_width_y);
         let current_bird = bot_birds.get(i_current_bird).unwrap();
+
+
+
         let mut other_birds_direction = Vec3::default();
         let mut other_birds_count = 0;
         let mut position_accumulator = PositionAccumulator::new();

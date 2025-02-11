@@ -17,6 +17,9 @@ const BOT_COUNT: usize = 1000;
 
 #[macroquad::main(window_conf)]
 async fn main() {
+    set_cursor_grab(true);
+    show_mouse(false);
+
     let map_size = vec2(1000.0, 1000.0);
     // let screen_center = Vec2::new(screen_width() * 0.5, screen_height() * 0.5);
     let mut player_bird = Bird::new(vec3(0.0, 0.0, 100.0),
@@ -33,6 +36,8 @@ async fn main() {
     let mut bot_birds_2 = spawn_default_birds_2(map_size * 0.25);
     bot_birds.append(&mut bot_birds_2);
     let mut paused = true;
+
+    let mut last_mouse_position: Vec2 = mouse_position().into();
     let mut previous_now = now();
     let mut last_draw = 0.0;
     let mut previous_fps = 0.0;
@@ -46,7 +51,7 @@ async fn main() {
         if is_key_pressed(KeyCode::Space) {
             paused = !paused;
         }
-        control_camera(&mut camera_pos, &mut camera_dir, up);
+        control_camera(&mut last_mouse_position, &mut camera_pos, &mut camera_dir, up);
         if !paused {
             control_player_bird(&mut player_bird, map_size);
             control_bot_birds(&mut bot_birds, &player_bird, map_size.x, map_size.y);
@@ -90,13 +95,39 @@ fn spawn_default_birds_2(map_size: Vec2) -> Vec<Bird> {
     spawn_birds(BOT_COUNT, map_size, 2.0 * map_size)
 }
 
-fn control_camera(camera_pos: &mut Vec3, camera_dir: &mut Vec3, up: Vec3) {
+fn control_camera(last_mouse_position: &mut Vec2, camera_pos: &mut Vec3, camera_dir: &mut Vec3, up: Vec3) {
     let camera_rotation_speed = 0.03;
+    let look_speed = 0.003;
     let camera_speed = if is_key_down(KeyCode::LeftShift) || is_key_down(KeyCode::RightShift) {
         3.0
     } else {
         0.3
     };
+    if is_key_down(KeyCode::A) {
+        let left = up.cross(*camera_dir);
+        *camera_dir += left * camera_rotation_speed;
+        *camera_dir = camera_dir.normalize();
+    }
+    if is_key_down(KeyCode::D) {
+        let left = up.cross(*camera_dir);
+        *camera_dir -= left * camera_rotation_speed;
+        *camera_dir = camera_dir.normalize();
+    }
+
+    let mouse_position: Vec2 = mouse_position().into();
+    let mouse_delta = mouse_position - *last_mouse_position;
+    *last_mouse_position = mouse_position;
+
+    let left = up.cross(*camera_dir);
+    *camera_dir -= left * mouse_delta.x * look_speed;
+    *camera_dir = camera_dir.normalize();
+
+    let mut pitch = mouse_delta.y * look_speed;
+    pitch = pitch.clamp(-1.5, 1.5);
+    *camera_dir -= up * pitch;
+
+    *camera_dir = camera_dir.normalize();
+
     if is_key_down(KeyCode::A) {
         let left = up.cross(*camera_dir);
         *camera_dir += left * camera_rotation_speed;
