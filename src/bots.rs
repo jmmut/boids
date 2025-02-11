@@ -1,7 +1,7 @@
 use crate::bird::{Bird, SIGHT_DISTANCE, TARGET_SPEED};
+use macroquad::math::Vec3;
 use macroquad::prelude::Vec2;
 use std::f32::consts::PI;
-use macroquad::math::Vec3;
 
 const BOT_DEFAULT_SPEED: f32 = TARGET_SPEED;
 const PEER_PRESSURE_FACTOR: f32 = 0.3; // in pixels per frame squared
@@ -10,7 +10,7 @@ const PERSONAL_SPACE_SQUARED: f32 = PERSONAL_SPACE * PERSONAL_SPACE; // in pixel
 const PERSONAL_SPACE_STRENGTH: f32 = 0.2; // [0, 1] coefficient
 const COHESION_FACTOR: f32 = 0.01;
 
-pub fn spawn_birds(count: usize, min_pos: Vec2, max_pos: Vec2) -> Vec<Bird> {
+pub fn spawn_birds(count: usize, min_pos: Vec3, max_pos: Vec3) -> Vec<Bird> {
     let mut seed = 3453457.0;
     let mut bots = Vec::with_capacity(count);
     let mut rnd = || iterate_hash(&mut seed);
@@ -19,10 +19,12 @@ pub fn spawn_birds(count: usize, min_pos: Vec2, max_pos: Vec2) -> Vec<Bird> {
             Vec3::new(
                 in_modulo_range(rnd(), min_pos.x, max_pos.x),
                 in_modulo_range(rnd(), min_pos.y, max_pos.y),
-                in_modulo_range(rnd(), 80.0, 120.0),
+                in_modulo_range(rnd(), min_pos.z, max_pos.z),
             ),
-            angle_to_coords3(in_modulo_range(rnd(), 0.0, 2.0 * PI),
-                             in_modulo_range(rnd(), -1.0, 1.0)),
+            angle_to_coords3(
+                in_modulo_range(rnd(), 0.0, 2.0 * PI),
+                in_modulo_range(rnd(), -1.0, 1.0),
+            ),
         ));
         bots.last_mut().unwrap().set_speed(BOT_DEFAULT_SPEED);
     }
@@ -34,7 +36,15 @@ fn iterate_hash(h: &mut f64) -> f32 {
     *h as f32
 }
 
+/// See tests for exact behaviour. assumes min < max
 fn in_modulo_range(value: f32, min: f32, max: f32) -> f32 {
+    assert!(min < max, "{} < {}", min, max);
+    if value < min {
+        let diff = min - value;
+        let range = max - min;
+        let base = min - (diff / range).ceil() * range;
+        return (value - base) % range + min;
+    }
     (value - min) % (max - min) + min
 }
 
@@ -48,17 +58,15 @@ fn angle_to_coords3(angle: f32, pitch: f32) -> Vec3 {
 pub fn control_bot_birds(
     bot_birds: &mut Vec<Bird>,
     player_bird: &Bird,
-    map_width_x: f32,
-    map_width_y: f32,
+    min_pos: Vec3,
+    max_pos: Vec3,
 ) {
     for i_current_bird in 0..bot_birds.len() {
         bot_birds
             .get_mut(i_current_bird)
             .unwrap()
-            .advance_toroid(map_width_x, map_width_y);
+            .advance_toroid(min_pos, max_pos);
         let current_bird = bot_birds.get(i_current_bird).unwrap();
-
-
 
         let mut other_birds_direction = Vec3::default();
         let mut other_birds_count = 0;
@@ -131,12 +139,13 @@ mod tests {
 
     #[test]
     fn test_spawn_birds() {
-        let min_pos = Vec2::new(40.0, 30.0);
-        let max_pos = Vec2::new(400.0, 300.0);
+        let min_pos = Vec3::new(40.0, 30.0, 20.0);
+        let max_pos = Vec3::new(400.0, 300.0, 200.0);
         let bots = spawn_birds(10, min_pos, max_pos);
         for bot in bots {
             assert!(bot.get_pos().x >= min_pos.x && bot.get_pos().x <= max_pos.x);
             assert!(bot.get_pos().y >= min_pos.y && bot.get_pos().y <= max_pos.y);
+            assert!(bot.get_pos().z >= min_pos.z && bot.get_pos().z <= max_pos.z);
             assert_float_eq(bot.get_speed(), BOT_DEFAULT_SPEED);
         }
     }
@@ -145,6 +154,19 @@ mod tests {
     fn test_float_modulo() {
         assert_eq!(107.0 % 100.0, 7.0);
         assert_eq!(-107.0 % 100.0, -7.0);
+    }
+
+    #[test]
+    fn test_in_modulo_range() {
+        assert_float_eq(in_modulo_range(3.0, 0.0, 10.0), 3.0);
+        assert_float_eq(in_modulo_range(13.0, 0.0, 10.0), 3.0);
+        assert_float_eq(in_modulo_range(13.0, 20.0, 30.0), 23.0);
+        assert_float_eq(in_modulo_range(13.0, 50.0, 60.0), 53.0);
+        assert_float_eq(in_modulo_range(-7.0, 0.0, 10.0), 3.0);
+        assert_float_eq(in_modulo_range(-27.0, 0.0, 10.0), 3.0);
+        assert_float_eq(in_modulo_range(-27.0, 20.0, 30.0), 23.0);
+        assert_float_eq(in_modulo_range(-57.0, -30.0, -20.0), -27.0);
+        assert_float_eq(in_modulo_range(13.0, -30.0, -20.0), -27.0);
     }
 
     #[test]

@@ -88,20 +88,21 @@ impl Bird {
         self.dir = self.dir.normalize() * self.speed;
     }
 
-    pub fn advance_toroid(&mut self, width: f32, height: f32) {
+    pub fn advance_toroid(&mut self, min: Vec3, max: Vec3) {
+        let size = max - min;
         self.pos += self.dir;
-        // assumes that increments are smaller than 1 whole screen
-        if self.pos.x < 0.0 {
-            self.pos.x += width;
+        // assumes that increments are smaller than 1 whole map
+        if self.pos.x < min.x {
+            self.pos.x += size.x;
         }
-        if self.pos.x >= width {
-            self.pos.x -= width;
+        if self.pos.x >= max.x {
+            self.pos.x -= size.x;
         }
-        if self.pos.y < 0.0 {
-            self.pos.y += height;
+        if self.pos.y < min.y {
+            self.pos.y += size.y;
         }
-        if self.pos.y >= height {
-            self.pos.y -= height;
+        if self.pos.y >= max.y {
+            self.pos.y -= size.y;
         }
         self.speed += (TARGET_SPEED - self.speed) * 0.01;
         self.update_dir_magnitude();
@@ -152,7 +153,7 @@ mod tests {
         let rotated = rotate_angle(right_down, PI * 0.4);
         assert_vec2_eq(rotated, Vec2::new(0.0594, 0.50643));
     }
-    
+
     // #[test]
     // fn test_rotate_bird() {
     //     let mut bird = Bird::new(Vec2::default(), Vec2::new(0.5, 0.1));

@@ -19,11 +19,11 @@ const BOT_COUNT: usize = 1000;
 async fn main() {
     set_cursor_grab(true);
     show_mouse(false);
-
-    let map_size = vec2(1000.0, 1000.0);
+    let map_size = vec3(1000.0, 1000.0, 40.0);
+    let min_pos = vec3(-map_size.x * 0.5, -map_size.y * 0.5, 80.0);
+    let max_pos = min_pos + map_size;
     // let screen_center = Vec2::new(screen_width() * 0.5, screen_height() * 0.5);
-    let mut player_bird = Bird::new(vec3(0.0, 0.0, 100.0),
-                                    vec3(TARGET_SPEED, 0.0, 0.0));
+    let mut player_bird = Bird::new(vec3(0.0, 0.0, 100.0), vec3(TARGET_SPEED, 0.0, 0.0));
     let fovy = 45.0;
     // let radians = fovy * 0.5 / 360.0 * 2.0 * PI * 1.5; // why the 1.5???
     let mut camera_pos = vec3(
@@ -32,9 +32,7 @@ async fn main() {
     );
     let mut camera_dir = vec3(0.0, 1.0, 0.0);
     let up = vec3(0.0, 0.0, 1.0);
-    let mut bot_birds = spawn_default_birds(map_size * 0.25);
-    let mut bot_birds_2 = spawn_default_birds_2(map_size * 0.25);
-    bot_birds.append(&mut bot_birds_2);
+    let mut bot_birds = respawn_default_bots(map_size, min_pos, max_pos);
     let mut paused = true;
 
     let mut last_mouse_position: Vec2 = mouse_position().into();
@@ -46,17 +44,21 @@ async fn main() {
             break;
         }
         if is_key_pressed(KeyCode::R) {
-            bot_birds = spawn_default_birds(map_size);
+            bot_birds = respawn_default_bots(map_size, min_pos, max_pos);
         }
         if is_key_pressed(KeyCode::Space) {
             paused = !paused;
         }
-        control_camera(&mut last_mouse_position, &mut camera_pos, &mut camera_dir, up);
+        control_camera(
+            &mut last_mouse_position,
+            &mut camera_pos,
+            &mut camera_dir,
+            up,
+        );
         if !paused {
-            control_player_bird(&mut player_bird, map_size);
-            control_bot_birds(&mut bot_birds, &player_bird, map_size.x, map_size.y);
+            control_player_bird(&mut player_bird, min_pos, max_pos);
+            control_bot_birds(&mut bot_birds, &player_bird, min_pos, max_pos);
         }
-
 
         clear_background(LIGHTGRAY);
         set_3d_camera(fovy, camera_pos, camera_dir, up);
@@ -64,10 +66,10 @@ async fn main() {
         draw_cube_wires(vec3(0., 0., 6.), vec3(2., 2., 2.), DARKGREEN);
 
         draw_bird(&player_bird, DARKPURPLE);
-        for bird in &bot_birds[0..bot_birds.len()/2] {
+        for bird in &bot_birds[0..bot_birds.len() / 2] {
             draw_bird(bird, DARKGREEN);
         }
-        for bird in &bot_birds[bot_birds.len()/2..] {
+        for bird in &bot_birds[bot_birds.len() / 2..] {
             draw_bird(bird, YELLOW);
         }
 
@@ -75,6 +77,13 @@ async fn main() {
         draw_fps(&mut previous_now, &mut last_draw, &mut previous_fps);
         next_frame().await
     }
+}
+
+fn respawn_default_bots(map_size: Vec3, min_pos: Vec3, max_pos: Vec3) -> Vec<Bird> {
+    let mut bot_birds = spawn_birds(BOT_COUNT, min_pos, min_pos + map_size * 0.5);
+    let mut bot_birds_2 = spawn_birds(BOT_COUNT, min_pos + map_size * 0.5, max_pos);
+    bot_birds.append(&mut bot_birds_2);
+    bot_birds
 }
 
 fn window_conf() -> Conf {
@@ -86,16 +95,12 @@ fn window_conf() -> Conf {
     }
 }
 
-fn spawn_default_birds(map_size: Vec2) -> Vec<Bird> {
-    // let half = map_size * 0.5;
-    spawn_birds(BOT_COUNT, vec2(0.0, 0.0), map_size)
-}
-fn spawn_default_birds_2(map_size: Vec2) -> Vec<Bird> {
-    // let half = map_size * 0.5;
-    spawn_birds(BOT_COUNT, map_size, 2.0 * map_size)
-}
-
-fn control_camera(last_mouse_position: &mut Vec2, camera_pos: &mut Vec3, camera_dir: &mut Vec3, up: Vec3) {
+fn control_camera(
+    last_mouse_position: &mut Vec2,
+    camera_pos: &mut Vec3,
+    camera_dir: &mut Vec3,
+    up: Vec3,
+) {
     let camera_rotation_speed = 0.03;
     let look_speed = 0.003;
     let camera_speed = if is_key_down(KeyCode::LeftShift) || is_key_down(KeyCode::RightShift) {
@@ -146,7 +151,7 @@ fn control_camera(last_mouse_position: &mut Vec2, camera_pos: &mut Vec3, camera_
     }
 }
 
-fn control_player_bird(bird: &mut Bird, map_size: Vec2) {
+fn control_player_bird(bird: &mut Bird, min_pos: Vec3, max_pos: Vec3) {
     if is_key_down(KeyCode::Left) {
         bird.rotate(ANGULAR_SPEED);
     }
@@ -162,19 +167,14 @@ fn control_player_bird(bird: &mut Bird, map_size: Vec2) {
     if is_key_pressed(KeyCode::F1) {
         println!("bird: {:?}", bird);
     }
-    bird.advance_toroid(map_size.x, map_size.y);
+    bird.advance_toroid(min_pos, max_pos);
 }
 
 fn draw_bird(bird: &Bird, color: Color) {
     // let BirdTriangle { front, left, right } = bird.get_triangle();
     // draw_triangle(front, left, right, color);
     // draw_sphere(vec3(front.x, front.y, 0.0), bird.get_speed(), None, color)
-    draw_cube(
-        bird.get_pos(),
-        Vec3::splat(bird.get_speed()),
-        None,
-        color,
-    )
+    draw_cube(bird.get_pos(), Vec3::splat(bird.get_speed()), None, color)
 }
 
 fn set_3d_camera(fovy: f32, camera_pos: Vec3, camera_dir: Vec3, up: Vec3) {
@@ -201,7 +201,7 @@ fn draw_fps(previous_now: &mut f64, last_draw: &mut f64, previous_fps: &mut f64)
     *previous_now = new_now;
     *previous_fps = fps;
 }
-pub fn draw_grid(slices: Vec2, spacing: f32, axes_color: Color, other_color: Color) {
+pub fn draw_grid(slices: Vec3, spacing: f32, axes_color: Color, other_color: Color) {
     let half_slices_x = (slices.x as i32) / 2;
     let half_slices_y = (slices.y as i32) / 2;
     for i in -half_slices_x..half_slices_x + 1 {
