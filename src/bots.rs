@@ -11,6 +11,7 @@ const PERSONAL_SPACE_STRENGTH: f32 = 0.2; // [0, 1] coefficient
 const COHESION_FACTOR: f32 = 0.01;
 const MAP_LIMIT_CORRECTION: f32 = 1.0;
 const TARGET_ATTRACTION: f32 = 0.2;
+const SPIRAL_FACTOR: f32 = 0.1;
 
 pub fn spawn_birds(count: usize, min_pos: Vec3, max_pos: Vec3) -> Vec<Bird> {
     let mut seed = 3453457.0;
@@ -120,10 +121,12 @@ pub fn control_bot_birds(
         } else {
             Vec3::default()
         };
-        let cohesion =
-            position_accumulator.get_average_from(current_bird.get_pos()) * COHESION_FACTOR;
-        // let cohesion = Vec3::default();
-        let direction_modifier = alignment + separation + cohesion + height_limits + target;
+        let current_bird_to_mass_center =
+            position_accumulator.get_average_from(current_bird.get_pos());
+        let cohesion = current_bird_to_mass_center * COHESION_FACTOR;
+        let spiral = get_spiral(current_bird.get_direction(), current_bird_to_mass_center);
+        let direction_modifier =
+            alignment + separation + cohesion + height_limits + target + spiral;
         if direction_modifier.is_nan() {
             // panic!("should not happen, put breakpoint here");
         }
@@ -132,6 +135,10 @@ pub fn control_bot_birds(
             .unwrap()
             .modify_direction(direction_modifier, PEER_PRESSURE_FACTOR);
     }
+}
+
+fn get_spiral(direction: Vec3, mass_center: Vec3) -> Vec3 {
+    direction.cross(mass_center).normalize() * SPIRAL_FACTOR
 }
 
 fn correct_for_target(pos: Vec3, target: Option<Vec3>) -> Vec3 {

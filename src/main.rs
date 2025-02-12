@@ -2,8 +2,8 @@ mod assertions;
 mod bird;
 mod bots;
 
-use crate::bird::{Bird, BirdTriangle, TARGET_SPEED};
-use crate::bots::{control_bot_birds, in_modulo_range, in_modulo_range_i, spawn_birds};
+use crate::bird::{Bird, TARGET_SPEED};
+use crate::bots::{control_bot_birds, in_modulo_range_i, spawn_birds};
 use macroquad::miniquad::date::now;
 use macroquad::prelude::*;
 use std::f32::consts::PI;
@@ -30,10 +30,12 @@ async fn main() {
     let mut camera_pos = vec3(
         0.0,
         -map_size.y * 0.5,
-        max_pos.z * 4.0,
+        // max_pos.z * 4.0,
+        max_pos.z * 1.0,
         // - screen_center.x / radians.tan(),
     );
-    let mut camera_dir = vec3(0.002, 1.0, -2.1);
+    // let mut camera_dir = vec3(0.002, 1.0, -2.1);
+    let mut camera_dir = vec3(0.002, 1.0, 0.0);
     let up = vec3(0.0, 0.0, 1.0);
     let mut bot_birds = respawn_default_bots(map_size, min_pos, max_pos);
     let mut paused = true;
