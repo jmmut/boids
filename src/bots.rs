@@ -7,11 +7,11 @@ const BOT_DEFAULT_SPEED: f32 = TARGET_SPEED;
 const PEER_PRESSURE_FACTOR: f32 = 0.1; // in world units per frame squared
 const PERSONAL_SPACE: f32 = SIGHT_DISTANCE * 0.5; // in world units
 const PERSONAL_SPACE_SQUARED: f32 = PERSONAL_SPACE * PERSONAL_SPACE; // in world units
-const PERSONAL_SPACE_STRENGTH: f32 = 0.2; // [0, 1] coefficient
+const PERSONAL_SPACE_STRENGTH: f32 = 0.05; // [0, 1] coefficient
 const COHESION_FACTOR: f32 = 0.01;
 const MAP_LIMIT_CORRECTION: f32 = 1.0;
 const TARGET_ATTRACTION: f32 = 0.2;
-const SPIRAL_FACTOR: f32 = 0.1;
+const SPIRAL_FACTOR: f32 = 0.01;
 
 pub fn spawn_birds(count: usize, min_pos: Vec3, max_pos: Vec3) -> Vec<Bird> {
     let mut seed = 3453457.0;
@@ -81,7 +81,6 @@ pub fn control_bot_birds(
             .unwrap()
             .advance_toroid(min_pos, max_pos);
         let current_bird = bot_birds.get(i_current_bird).unwrap();
-
         let height_limits = correct_map_limit(min_pos, max_pos, current_bird);
         let target = correct_for_target(current_bird.get_pos(), target);
         let mut other_birds_direction = Vec3::default();
@@ -122,7 +121,7 @@ pub fn control_bot_birds(
             Vec3::default()
         };
         let current_bird_to_mass_center =
-            position_accumulator.get_average_from(current_bird.get_pos());
+            position_accumulator.get_average_from_or(current_bird.get_pos(), Vec3::default());
         let cohesion = current_bird_to_mass_center * COHESION_FACTOR;
         let spiral = get_spiral(current_bird.get_direction(), current_bird_to_mass_center);
         let direction_modifier =
@@ -138,7 +137,8 @@ pub fn control_bot_birds(
 }
 
 fn get_spiral(direction: Vec3, mass_center: Vec3) -> Vec3 {
-    direction.cross(mass_center).normalize() * SPIRAL_FACTOR
+    let sideways = direction.cross(mass_center);
+    sideways * SPIRAL_FACTOR
 }
 
 fn correct_for_target(pos: Vec3, target: Option<Vec3>) -> Vec3 {
@@ -178,9 +178,9 @@ impl PositionAccumulator {
         self.added_positions += other_pos;
         self.position_count += 1;
     }
-    pub fn get_average_from(&self, reference: Vec3) -> Vec3 {
+    pub fn get_average_from_or(&self, reference: Vec3, default: Vec3) -> Vec3 {
         if self.position_count == 0 {
-            reference
+            default
         } else {
             self.added_positions / self.position_count as f32 - reference
         }

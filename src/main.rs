@@ -31,11 +31,11 @@ async fn main() {
         0.0,
         -map_size.y * 0.5,
         // max_pos.z * 4.0,
-        max_pos.z * 1.0,
+        player_bird.get_pos().z + 20.0,
         // - screen_center.x / radians.tan(),
     );
     // let mut camera_dir = vec3(0.002, 1.0, -2.1);
-    let mut camera_dir = vec3(0.002, 1.0, 0.0);
+    let mut camera_dir = vec3(0.002, 1.0, -0.5);
     let up = vec3(0.0, 0.0, 1.0);
     let mut bot_birds = respawn_default_bots(map_size, min_pos, max_pos);
     let mut paused = true;
@@ -197,12 +197,11 @@ fn draw_bird(bird: &Bird, color: Color) {
     // let BirdTriangle { front, left, right } = bird.get_triangle();
     // draw_triangle(front, left, right, color);
     // draw_sphere(vec3(front.x, front.y, 0.0), bird.get_speed(), None, color)
-    draw_cube(
-        bird.get_pos(),
-        Vec3::splat(bird.get_speed() * 0.5 + 1.0),
-        None,
-        color,
-    )
+    let size = bird.get_speed() * 0.5 + 1.0;
+    draw_cube(bird.get_pos(), Vec3::splat(size), None, color);
+    let mut floor_pos = bird.get_pos();
+    floor_pos.z = 0.0;
+    draw_rectangle(floor_pos.x, floor_pos.y, size, size, BLACK)
 }
 
 fn set_3d_camera(fovy: f32, camera_pos: Vec3, camera_dir: Vec3, up: Vec3) {
@@ -242,6 +241,7 @@ pub fn draw_grid(
     let max = 200.0;
     let distance = (distance.abs().clamp(min, max) - min) / (max - min);
     other_color.a *= 1.0 - distance;
+    let height = -0.5;
     for i in -half_slices_x..half_slices_x + 1 {
         let color = if in_modulo_range_i(i, 0, 10) == 0 {
             axes_color
@@ -250,8 +250,8 @@ pub fn draw_grid(
         };
 
         draw_line_3d(
-            vec3(i as f32 * spacing, -half_slices_x as f32 * spacing, 0.),
-            vec3(i as f32 * spacing, half_slices_x as f32 * spacing, 0.),
+            vec3(i as f32 * spacing, -half_slices_x as f32 * spacing, height),
+            vec3(i as f32 * spacing, half_slices_x as f32 * spacing, height),
             color,
         );
     }
@@ -264,8 +264,8 @@ pub fn draw_grid(
         };
 
         draw_line_3d(
-            vec3(-half_slices_x as f32 * spacing, i as f32 * spacing, 0.),
-            vec3(half_slices_y as f32 * spacing, i as f32 * spacing, 0.),
+            vec3(-half_slices_x as f32 * spacing, i as f32 * spacing, height),
+            vec3(half_slices_y as f32 * spacing, i as f32 * spacing, height),
             color,
         );
     }
