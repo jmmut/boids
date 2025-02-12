@@ -35,7 +35,7 @@ async fn main() {
         // - screen_center.x / radians.tan(),
     );
     // let mut camera_dir = vec3(0.002, 1.0, -2.1);
-    let mut camera_dir = vec3(0.002, 1.0, -0.5);
+    let mut camera_dir = vec3(0.002, 1.0, -0.2);
     let up = vec3(0.0, 0.0, 1.0);
     let mut bot_birds = respawn_default_bots(map_size, min_pos, max_pos);
     let mut paused = true;
